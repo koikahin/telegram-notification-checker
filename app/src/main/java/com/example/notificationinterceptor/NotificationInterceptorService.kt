@@ -11,6 +11,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.CoroutineScope
@@ -61,10 +62,19 @@ class NotificationInterceptorService : NotificationListenerService() {
             return
         }
 
-        val packageName = sbn.packageName
-        Log.d(TAG, "Incoming notification package: $packageName")
-
         serviceScope.launch {
+            val serviceEnabled = dataStore.data.map {
+                it[booleanPreferencesKey("service_enabled")] ?: false
+            }.first()
+
+            if (!serviceEnabled) {
+                Log.d(TAG, "Service is disabled, ignoring notification.")
+                return@launch
+            }
+
+            val packageName = sbn.packageName
+            Log.d(TAG, "Incoming notification package: $packageName")
+
             try {
                 val targetPackageName = dataStore.data.map {
                     it[stringPreferencesKey("target_package_name")] ?: ""
