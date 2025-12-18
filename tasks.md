@@ -21,7 +21,7 @@
 
 ## High Priority
 
-### [ ] 3. BootReceiver Main Thread Blocking
+### [x] 3. BootReceiver Main Thread Blocking
 **File:** `app/src/main/java/com/example/notificationinterceptor/BootReceiver.kt:20-24`
 **Issue:** `runBlocking` in `onReceive()` blocks main thread during boot (ANR risk)
 **Fix Required:**
@@ -29,7 +29,7 @@
 - Or migrate to WorkManager for boot-time initialization
 - Ensure completion within 10-second limit
 
-### [ ] 4. Service Toggle Doesn't Start/Stop Service
+### [x] 4. Service Toggle Doesn't Start/Stop Service
 **File:** `app/src/main/java/com/example/notificationinterceptor/ui/MainScreen.kt:64-69`
 **Issue:** Toggle only saves preference but doesn't actually start/stop the service
 **Fix Required:**
@@ -37,7 +37,7 @@
 - Or inform user they need to manually rebind in system settings
 - Consider using `requestRebind()` API if available
 
-### [ ] 5. DataStore Reads Without Caching
+### [x] 5. DataStore Reads Without Caching
 **File:** `app/src/main/java/com/example/notificationinterceptor/NotificationInterceptorService.kt:65-73`
 **Issue:** Each notification creates new coroutine that reads DataStore, causing performance issues
 **Fix Required:**
