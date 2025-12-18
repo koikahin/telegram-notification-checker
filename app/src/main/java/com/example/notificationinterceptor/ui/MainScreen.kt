@@ -1,19 +1,26 @@
 package com.example.notificationinterceptor.ui
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
+import com.example.notificationinterceptor.NotificationInterceptorService
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -30,20 +37,29 @@ fun MainScreen() {
     var targetPackageName by remember { mutableStateOf("org.telegram.messenger") }
     var targetGroupName by remember { mutableStateOf("") }
     var serviceEnabled by remember { mutableStateOf(false) }
+    var isListenerEnabled by remember { mutableStateOf(false) }
+
+    // Check if NotificationListenerService is enabled
+    fun checkListenerEnabled(): Boolean {
+        val enabledListeners = NotificationManagerCompat.getEnabledListenerPackages(context)
+        return enabledListeners.contains(context.packageName)
+    }
 
     // Load settings from DataStore
     LaunchedEffect(Unit) {
-        context.dataStore.data.map {
-            it[stringPreferencesKey("target_package_name")] ?: "org.telegram.messenger"
-        }.collect { targetPackageName = it }
+        context.dataStore.data.collect { preferences ->
+            targetPackageName = preferences[stringPreferencesKey("target_package_name")] ?: "org.telegram.messenger"
+            targetGroupName = preferences[stringPreferencesKey("target_group_name")] ?: ""
+            serviceEnabled = preferences[booleanPreferencesKey("service_enabled")] ?: false
+        }
+    }
 
-        context.dataStore.data.map {
-            it[stringPreferencesKey("target_group_name")] ?: ""
-        }.collect { targetGroupName = it }
-
-        context.dataStore.data.map {
-            it[booleanPreferencesKey("service_enabled")] ?: false
-        }.collect { serviceEnabled = it }
+    // Check listener status periodically
+    LaunchedEffect(Unit) {
+        while (true) {
+            isListenerEnabled = checkListenerEnabled()
+            kotlinx.coroutines.delay(1000)
+        }
     }
 
     Column(
@@ -53,6 +69,45 @@ fun MainScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        // Service status indicator
+        if (!isListenerEnabled) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFFFEBEE))
+                    .padding(12.dp)
+            ) {
+                Column {
+                    Text(
+                        "⚠️ Notification Access Required",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFC62828)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "The app cannot intercept notifications without permission. Please grant access below.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFC62828)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFE8F5E9))
+                    .padding(12.dp)
+            ) {
+                Text(
+                    "✓ Notification Access Granted",
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2E7D32)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -61,6 +116,7 @@ fun MainScreen() {
             Text("Service Enabled")
             Switch(
                 checked = serviceEnabled,
+                enabled = isListenerEnabled,
                 onCheckedChange = {
                     serviceEnabled = it
                     coroutineScope.launch {
