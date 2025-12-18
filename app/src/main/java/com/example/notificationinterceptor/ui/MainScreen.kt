@@ -122,7 +122,20 @@ fun MainScreen() {
                     coroutineScope.launch {
                         saveServiceState(context, it)
                     }
+                    // Note: NotificationListenerService is bound by the system
+                    // User may need to toggle notification access off/on in system settings
+                    // for changes to take effect immediately
                 }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        if (serviceEnabled && isListenerEnabled) {
+            Text(
+                "Note: If the service doesn't start immediately, toggle notification access off/on in system settings.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
