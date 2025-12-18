@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -38,6 +41,7 @@ fun MainScreen() {
     var targetGroupName by remember { mutableStateOf("") }
     var serviceEnabled by remember { mutableStateOf(false) }
     var isListenerEnabled by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Check if NotificationListenerService is enabled
     fun checkListenerEnabled(): Boolean {
@@ -62,13 +66,14 @@ fun MainScreen() {
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
         // Service status indicator
         if (!isListenerEnabled) {
             Box(
@@ -146,8 +151,16 @@ fun MainScreen() {
         TextField(
             value = targetPackageName,
             onValueChange = { targetPackageName = it },
-            label = { Text("Target Package Name") }
+            label = { Text("Target Package Name") },
+            isError = targetPackageName.isBlank()
         )
+        if (targetPackageName.isBlank()) {
+            Text(
+                "Package name cannot be empty",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -161,15 +174,25 @@ fun MainScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = {
-            coroutineScope.launch {
-                saveSettings(context, targetPackageName, targetGroupName)
-            }
-        }) {
+        Button(
+            onClick = {
+                if (targetPackageName.isBlank()) {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Package name cannot be empty")
+                    }
+                } else {
+                    coroutineScope.launch {
+                        saveSettings(context, targetPackageName, targetGroupName)
+                        snackbarHostState.showSnackbar("Settings saved successfully")
+                    }
+                }
+            },
+            enabled = targetPackageName.isNotBlank()
+        ) {
             Text("Save Settings")
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Button(onClick = {
             val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
@@ -177,6 +200,12 @@ fun MainScreen() {
         }) {
             Text("Grant Notification Access")
         }
+        }
+        
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
