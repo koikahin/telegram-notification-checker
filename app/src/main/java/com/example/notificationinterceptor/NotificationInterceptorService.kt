@@ -16,6 +16,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -35,6 +36,15 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "se
 class NotificationInterceptorService : NotificationListenerService() {
 
     private val serviceScope = CoroutineScope(Dispatchers.IO)
+    private var settingsCollectorJob: Job? = null
+
+    // Cached settings
+    @Volatile
+    private var cachedServiceEnabled = false
+    @Volatile
+    private var cachedTargetPackageName = ""
+    @Volatile
+    private var cachedTargetGroupName = ""
 
     // Pre-compile regex for performance
     private val dismissRegexes = listOf(
@@ -51,6 +61,24 @@ class NotificationInterceptorService : NotificationListenerService() {
         Log.d(TAG, "NotificationInterceptorService onCreate")
         createNotificationChannels()
         startForeground(FOREGROUND_NOTIFICATION_ID, createForegroundNotification())
+        startSettingsCollector()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        settingsCollectorJob?.cancel()
+        Log.d(TAG, "NotificationInterceptorService onDestroy")
+    }
+
+    private fun startSettingsCollector() {
+        settingsCollectorJob = serviceScope.launch {
+            dataStore.data.collect { preferences ->
+                cachedServiceEnabled = preferences[booleanPreferencesKey("service_enabled")] ?: false
+                cachedTargetPackageName = preferences[stringPreferencesKey("target_package_name")] ?: ""
+                cachedTargetGroupName = preferences[stringPreferencesKey("target_group_name")] ?: ""
+                Log.d(TAG, "Settings updated: enabled=$cachedServiceEnabled, package=$cachedTargetPackageName, group=$cachedTargetGroupName")
+            }
+        }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
@@ -63,11 +91,7 @@ class NotificationInterceptorService : NotificationListenerService() {
         }
 
         serviceScope.launch {
-            val serviceEnabled = dataStore.data.map {
-                it[booleanPreferencesKey("service_enabled")] ?: false
-            }.first()
-
-            if (!serviceEnabled) {
+            if (!cachedServiceEnabled) {
                 Log.d(TAG, "Service is disabled, ignoring notification.")
                 return@launch
             }
@@ -76,27 +100,17 @@ class NotificationInterceptorService : NotificationListenerService() {
             Log.d(TAG, "Incoming notification package: $packageName")
 
             try {
-                val targetPackageName = dataStore.data.map {
-                    it[stringPreferencesKey("target_package_name")] ?: ""
-                }.first()
-                Log.d(TAG, "Configured target package: $targetPackageName")
-
-                if (packageName != targetPackageName) {
+                if (packageName != cachedTargetPackageName) {
                     Log.d(TAG, "Package name mismatch. Ignoring notification.")
                     return@launch
                 }
-
-                val targetGroupName = dataStore.data.map {
-                    it[stringPreferencesKey("target_group_name")] ?: ""
-                }.first()
-                Log.d(TAG, "Configured target group name: $targetGroupName")
 
                 val notification = sbn.notification
                 val title = notification.extras.getString(Notification.EXTRA_TITLE) ?: ""
                 val text = notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
                 Log.d(TAG, "Notification Title: '$title', Text: '$text'")
 
-                if (targetGroupName.isNotBlank() && !title.contains(targetGroupName, ignoreCase = true)) {
+                if (cachedTargetGroupName.isNotBlank() && !title.contains(cachedTargetGroupName, ignoreCase = true)) {
                     Log.d(TAG, "Group name mismatch. Dismissing notification.")
                     cancelNotification(sbn.key)
                     return@launch
