@@ -146,23 +146,21 @@ class NotificationInterceptorService : NotificationListenerService() {
     }
 
     private fun createNotificationChannels() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            val foregroundChannel = NotificationChannel(
-                FOREGROUND_CHANNEL_ID,
-                FOREGROUND_CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_LOW
-            )
-            notificationManager.createNotificationChannel(foregroundChannel)
+        val foregroundChannel = NotificationChannel(
+            FOREGROUND_CHANNEL_ID,
+            FOREGROUND_CHANNEL_NAME,
+            NotificationManager.IMPORTANCE_DEFAULT
+        )
+        notificationManager.createNotificationChannel(foregroundChannel)
 
-            val lotsOfSlotsChannel = NotificationChannel(
-                CHANNEL_ID_LOTS_OF_SLOTS,
-                CHANNEL_NAME_LOTS_OF_SLOTS,
-                NotificationManager.IMPORTANCE_HIGH
-            )
-            notificationManager.createNotificationChannel(lotsOfSlotsChannel)
-        }
+        val lotsOfSlotsChannel = NotificationChannel(
+            CHANNEL_ID_LOTS_OF_SLOTS,
+            CHANNEL_NAME_LOTS_OF_SLOTS,
+            NotificationManager.IMPORTANCE_HIGH
+        )
+        notificationManager.createNotificationChannel(lotsOfSlotsChannel)
     }
 
     private fun sendLotsOfSlotsNotification() {
