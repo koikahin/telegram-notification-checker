@@ -39,7 +39,6 @@ fun MainScreen() {
     val coroutineScope = rememberCoroutineScope()
 
     var targetPackageName by remember { mutableStateOf("org.telegram.messenger") }
-    var targetGroupName by remember { mutableStateOf("") }
     var serviceEnabled by remember { mutableStateOf(false) }
     var isListenerEnabled by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -54,16 +53,20 @@ fun MainScreen() {
     LaunchedEffect(Unit) {
         context.dataStore.data.collect { preferences ->
             targetPackageName = preferences[stringPreferencesKey("target_package_name")] ?: "org.telegram.messenger"
-            targetGroupName = preferences[stringPreferencesKey("target_group_name")] ?: ""
             serviceEnabled = preferences[booleanPreferencesKey("service_enabled")] ?: false
         }
     }
 
-    // Check listener status periodically
-    LaunchedEffect(Unit) {
-        while (true) {
-            isListenerEnabled = checkListenerEnabled()
-            kotlinx.coroutines.delay(1000)
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                isListenerEnabled = checkListenerEnabled()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
@@ -127,7 +130,7 @@ fun MainScreen() {
                     serviceEnabled = it
                     coroutineScope.launch {
                         saveServiceState(context, it)
-                        if (it && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        if (it) {
                             requestServiceRebind(context)
                         }
                     }
@@ -153,15 +156,7 @@ fun MainScreen() {
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
 
-        Text("Enter the exact name of the Telegram group to filter notifications from.")
-        Spacer(modifier = Modifier.height(8.dp))
-        TextField(
-            value = targetGroupName,
-            onValueChange = { targetGroupName = it },
-            label = { Text("Target Telegram Group Name") }
-        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -173,7 +168,7 @@ fun MainScreen() {
                     }
                 } else {
                     coroutineScope.launch {
-                        saveSettings(context, targetPackageName, targetGroupName)
+                        saveSettings(context, targetPackageName)
                         snackbarHostState.showSnackbar("Settings saved successfully")
                     }
                 }
@@ -206,9 +201,13 @@ private suspend fun saveServiceState(context: Context, enabled: Boolean) {
     }
 }
 
-private suspend fun saveSettings(context: Context, targetPackageName: String, targetGroupName: String) {
+private suspend fun saveSettings(context: Context, targetPackageName: String) {
     context.dataStore.edit {
         it[stringPreferencesKey("target_package_name")] = targetPackageName
-        it[stringPreferencesKey("target_group_name")] = targetGroupName
     }
+}
+
+private fun requestServiceRebind(context: Context) {
+    val componentName = ComponentName(context, NotificationInterceptorService::class.java)
+    android.service.notification.NotificationListenerService.requestRebind(componentName)
 }
