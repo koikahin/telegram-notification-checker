@@ -3,6 +3,7 @@ package com.example.notificationinterceptor.ui
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -126,21 +127,11 @@ fun MainScreen() {
                     serviceEnabled = it
                     coroutineScope.launch {
                         saveServiceState(context, it)
+                        if (it && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            requestServiceRebind(context)
+                        }
                     }
-                    // Note: NotificationListenerService is bound by the system
-                    // User may need to toggle notification access off/on in system settings
-                    // for changes to take effect immediately
                 }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        if (serviceEnabled && isListenerEnabled) {
-            Text(
-                "Note: If the service doesn't start immediately, toggle notification access off/on in system settings.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
