@@ -4,12 +4,10 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.example.notificationinterceptor.BuildConfig
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -18,8 +16,6 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 private const val TAG = "NotificationInterceptor"
@@ -47,15 +43,6 @@ class NotificationInterceptorService : NotificationListenerService() {
     private var cachedServiceEnabled = false
     @Volatile
     private var cachedTargetPackageName = ""
-
-    private val lotsOfSlotsRegexes = listOf(
-        Regex(".*many slots.*", RegexOption.IGNORE_CASE),
-        Regex(".*tons of slots.*", RegexOption.IGNORE_CASE)
-    )
-    private val naRegexes = listOf(
-        Regex(".*NA.*", RegexOption.IGNORE_CASE),
-        Regex(".*Not Available.*", RegexOption.IGNORE_CASE)
-    )
 
     override fun onCreate() {
         super.onCreate()
@@ -110,13 +97,10 @@ class NotificationInterceptorService : NotificationListenerService() {
                 val text = notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
                 Log.d(TAG, "Notification Title: '$title', Text: '$text'")
 
-                val matchesLotsOfSlots = lotsOfSlotsRegexes.any { it.containsMatchIn(text) }
-                val matchesNA = naRegexes.any { it.containsMatchIn(text) }
-
-                if (matchesLotsOfSlots) {
+                if (text.matchesPriority()) {
                     Log.d(TAG, "Lots of slots regex matched! Sending high priority notification.")
                     sendLotsOfSlotsNotification()
-                } else if (!matchesNA) {
+                } else if (!text.matchesDisallowed()) {
                     Log.d(TAG, "Text does not match NA. Sending notification.")
                     sendSlotsAvailableNotification()
                 } else {
