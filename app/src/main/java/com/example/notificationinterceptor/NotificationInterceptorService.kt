@@ -27,6 +27,10 @@ private const val CHANNEL_ID_LOTS_OF_SLOTS = "lots_of_slots_channel"
 private const val CHANNEL_NAME_LOTS_OF_SLOTS = "Lots of Slots Notifications"
 private const val NOTIFICATION_ID_LOTS_OF_SLOTS = 2
 
+private const val CHANNEL_ID_SLOTS_AVAILABLE = "slots_available_channel"
+private const val CHANNEL_NAME_SLOTS_AVAILABLE = "Slots Available Notifications"
+private const val NOTIFICATION_ID_SLOTS_AVAILABLE = 4
+
 private const val FOREGROUND_CHANNEL_ID = "foreground_service_channel"
 private const val FOREGROUND_CHANNEL_NAME = "Notification Interceptor Service"
 private const val FOREGROUND_NOTIFICATION_ID = 3
@@ -47,7 +51,7 @@ class NotificationInterceptorService : NotificationListenerService() {
     private var cachedTargetGroupName = ""
 
     // Pre-compile regex for performance
-    private val dismissRegexes = listOf(
+    private val slotsAvailableRegexes = listOf(
         Regex(".*slot.*", RegexOption.IGNORE_CASE),
         Regex(".*available.*", RegexOption.IGNORE_CASE)
     )
@@ -117,18 +121,19 @@ class NotificationInterceptorService : NotificationListenerService() {
                 }
 
                 val matchesLotsOfSlots = lotsOfSlotsRegexes.any { it.containsMatchIn(text) }
-                val matchesDismiss = dismissRegexes.any { it.containsMatchIn(text) }
+                val matchesSlotsAvailable = slotsAvailableRegexes.any { it.containsMatchIn(text) }
 
                 if (matchesLotsOfSlots) {
                     Log.d(TAG, "Lots of slots regex matched! Sending high priority notification.")
                     sendLotsOfSlotsNotification()
                     // Do not dismiss original notification
-                } else if (matchesDismiss) {
-                    Log.d(TAG, "Dismiss regex matched! Dismissing original notification.")
-                    cancelNotification(sbn.key)
+                } else if (matchesSlotsAvailable) {
+                    Log.d(TAG, "Slots available regex matched! Sending notification.")
+                    sendSlotsAvailableNotification()
+                    // Do not dismiss original notification
                 } else {
-                    Log.d(TAG, "Neither regex matched. Keeping original notification.")
-                    // Do nothing, keep the original notification
+                    Log.d(TAG, "Neither regex matched. Dismissing original notification.")
+                    cancelNotification(sbn.key)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing notification", e)
@@ -161,6 +166,13 @@ class NotificationInterceptorService : NotificationListenerService() {
             NotificationManager.IMPORTANCE_HIGH
         )
         notificationManager.createNotificationChannel(lotsOfSlotsChannel)
+
+        val slotsAvailableChannel = NotificationChannel(
+            CHANNEL_ID_SLOTS_AVAILABLE,
+            CHANNEL_NAME_SLOTS_AVAILABLE,
+            NotificationManager.IMPORTANCE_DEFAULT
+        )
+        notificationManager.createNotificationChannel(slotsAvailableChannel)
     }
 
     private fun sendLotsOfSlotsNotification() {
@@ -175,5 +187,19 @@ class NotificationInterceptorService : NotificationListenerService() {
             .build()
 
         notificationManager.notify(NOTIFICATION_ID_LOTS_OF_SLOTS, notification)
+    }
+
+    private fun sendSlotsAvailableNotification() {
+        Log.d(TAG, "Sending 'slots available' notification.")
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID_SLOTS_AVAILABLE)
+            .setContentTitle("Slots available!")
+            .setContentText("Slots available!")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+
+        notificationManager.notify(NOTIFICATION_ID_SLOTS_AVAILABLE, notification)
     }
 }
