@@ -19,6 +19,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 private const val TAG = "NotificationInterceptor"
+private const val ENABLE_FOREGROUND_SERVICE =
+        false // Set to true to enable persistent foreground notification
 
 private const val FOREGROUND_CHANNEL_ID = "foreground_service_channel"
 private const val FOREGROUND_CHANNEL_NAME = "monitoring slot messages..."
@@ -39,16 +41,16 @@ class NotificationInterceptorService : NotificationListenerService() {
     private var settingsCollectorJob: Job? = null
 
     // Cached settings
-    @Volatile
-    private var cachedServiceEnabled = false
-    @Volatile
-    private var cachedTargetPackageName = ""
+    @Volatile private var cachedServiceEnabled = false
+    @Volatile private var cachedTargetPackageName = ""
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "NotificationInterceptorService onCreate")
         createNotificationChannels()
-        startForeground(FOREGROUND_NOTIFICATION_ID, createForegroundNotification())
+        if (ENABLE_FOREGROUND_SERVICE) {
+            startForeground(FOREGROUND_NOTIFICATION_ID, createForegroundNotification())
+        }
         startSettingsCollector()
     }
 
@@ -59,13 +61,20 @@ class NotificationInterceptorService : NotificationListenerService() {
     }
 
     private fun startSettingsCollector() {
-        settingsCollectorJob = serviceScope.launch {
-            dataStore.data.collect { preferences ->
-                cachedServiceEnabled = preferences[booleanPreferencesKey("service_enabled")] ?: false
-                cachedTargetPackageName = preferences[stringPreferencesKey("target_package_name")] ?: "org.telegram.messenger"
-                Log.d(TAG, "Settings updated: enabled=$cachedServiceEnabled, package=$cachedTargetPackageName")
-            }
-        }
+        settingsCollectorJob =
+                serviceScope.launch {
+                    dataStore.data.collect { preferences ->
+                        cachedServiceEnabled =
+                                preferences[booleanPreferencesKey("service_enabled")] ?: false
+                        cachedTargetPackageName =
+                                preferences[stringPreferencesKey("target_package_name")]
+                                        ?: "org.telegram.messenger"
+                        Log.d(
+                                TAG,
+                                "Settings updated: enabled=$cachedServiceEnabled, package=$cachedTargetPackageName"
+                        )
+                    }
+                }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
@@ -94,7 +103,9 @@ class NotificationInterceptorService : NotificationListenerService() {
 
                 val notification = sbn.notification
                 val title = notification.extras.getString(Notification.EXTRA_TITLE) ?: ""
-                val text = notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
+                val text =
+                        notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
+                                ?: ""
                 Log.d(TAG, "Notification Title: '$title', Text: '$text'")
 
                 if (text.matchesPriority()) {
@@ -104,7 +115,10 @@ class NotificationInterceptorService : NotificationListenerService() {
                     Log.d(TAG, "Text does not match NA. Sending notification.")
                     sendSlotsAvailableNotification()
                 } else {
-                    Log.d(TAG, "Matched NA pattern. Match found in text: '$text'. No notification sent.")
+                    Log.d(
+                            TAG,
+                            "Matched NA pattern. Match found in text: '$text'. No notification sent."
+                    )
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing notification", e)
@@ -114,59 +128,69 @@ class NotificationInterceptorService : NotificationListenerService() {
 
     private fun createForegroundNotification(): Notification {
         return NotificationCompat.Builder(this, FOREGROUND_CHANNEL_ID)
-            .setContentTitle("monitoring slots...")
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setOngoing(true)
-            .build()
+                .setContentTitle("monitoring slots...")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setOngoing(true)
+                .build()
     }
 
     private fun createNotificationChannels() {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val foregroundChannel = NotificationChannel(
-            FOREGROUND_CHANNEL_ID,
-            FOREGROUND_CHANNEL_NAME,
-            NotificationManager.IMPORTANCE_DEFAULT
-        )
-        notificationManager.createNotificationChannel(foregroundChannel)
+        if (ENABLE_FOREGROUND_SERVICE) {
+            val foregroundChannel =
+                    NotificationChannel(
+                            FOREGROUND_CHANNEL_ID,
+                            FOREGROUND_CHANNEL_NAME,
+                            NotificationManager.IMPORTANCE_DEFAULT
+                    )
+            notificationManager.createNotificationChannel(foregroundChannel)
+        }
 
-        val lotsOfSlotsChannel = NotificationChannel(
-            CHANNEL_ID_LOTS_OF_SLOTS,
-            CHANNEL_NAME_LOTS_OF_SLOTS,
-            NotificationManager.IMPORTANCE_HIGH
-        )
+        val lotsOfSlotsChannel =
+                NotificationChannel(
+                        CHANNEL_ID_LOTS_OF_SLOTS,
+                        CHANNEL_NAME_LOTS_OF_SLOTS,
+                        NotificationManager.IMPORTANCE_HIGH
+                )
         notificationManager.createNotificationChannel(lotsOfSlotsChannel)
 
-        val slotsAvailableChannel = NotificationChannel(
-            CHANNEL_ID_SLOTS_AVAILABLE,
-            CHANNEL_NAME_SLOTS_AVAILABLE,
-            NotificationManager.IMPORTANCE_DEFAULT
-        )
+        val slotsAvailableChannel =
+                NotificationChannel(
+                        CHANNEL_ID_SLOTS_AVAILABLE,
+                        CHANNEL_NAME_SLOTS_AVAILABLE,
+                        NotificationManager.IMPORTANCE_DEFAULT
+                )
         notificationManager.createNotificationChannel(slotsAvailableChannel)
     }
 
     private fun sendLotsOfSlotsNotification() {
         Log.d(TAG, "Sending 'lots of slots available' notification.")
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID_LOTS_OF_SLOTS)
-            .setContentTitle("!! Lots of slots available !!")
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .build()
+        val notification =
+                NotificationCompat.Builder(this, CHANNEL_ID_LOTS_OF_SLOTS)
+                        .setContentTitle("!! Lots of slots available !!")
+                        .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .build()
 
         notificationManager.notify(NOTIFICATION_ID_LOTS_OF_SLOTS, notification)
     }
 
     private fun sendSlotsAvailableNotification() {
         Log.d(TAG, "Sending 'slots available' notification.")
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID_SLOTS_AVAILABLE)
-            .setContentTitle("Slots may be available!")
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .build()
+        val notification =
+                NotificationCompat.Builder(this, CHANNEL_ID_SLOTS_AVAILABLE)
+                        .setContentTitle("Slots may be available!")
+                        .setSmallIcon(android.R.drawable.ic_dialog_info)
+                        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                        .build()
 
         notificationManager.notify(NOTIFICATION_ID_SLOTS_AVAILABLE, notification)
     }
