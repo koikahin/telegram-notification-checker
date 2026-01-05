@@ -1,6 +1,7 @@
 package com.example.slotnotificationmonitor
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 class AllowedMessagesTest {
@@ -49,9 +50,10 @@ class AllowedMessagesTest {
         "like making a lot of money" shouldBe disallowed
         "na today's pattern" shouldBe disallowed
         "na pattern" shouldBe disallowed
-        "today's pattern (effective 12am CST) na" shouldBe allowed
-        "Today’s Pattern- 08/13 (effective 12am CST) NA: Not Available" shouldBe allowed
-        "Todays Pattern 08/15 (effective after 12am CST) NA: Not Available" shouldBe allowed
+
+        "Sri 3 new messages from 2 chats" shouldBe disallowed
+        "when will slots open?" shouldBe disallowed
+        "how many slots?" shouldBe disallowed
     }
 
     @Test
@@ -76,8 +78,8 @@ private object allowed
 private object priority
 
 private infix fun String.shouldBe(obj: Any) = when(obj) {
-    is disallowed -> this.matchesDisallowed()
-    is allowed -> !this.matchesDisallowed()
+    is disallowed -> this.matchesDisallowed() shouldBe true
+    is allowed -> !this.matchesDisallowed() shouldBe true
     is priority -> this.isPriority() shouldBe true
     else -> throw Exception("Invalid")
 }

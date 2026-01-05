@@ -109,18 +109,18 @@ class SlotNotificationMonitorService : NotificationListenerService() {
                         notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
                                 ?: ""
                 Log.d(TAG, "Notification Title: '$title', Text: '$text'")
-
-                if (text.matchesPriority()) {
-                    Log.d(TAG, "Lots of slots regex matched! Sending high priority notification.")
-                    sendLotsOfSlotsNotification(text)
-                } else if (!text.matchesDisallowed()) {
+                if (text.matchesDisallowed()) {
+                    Log.d(TAG, "Matched NA pattern. No notification sent.")
+                } else {
                     Log.d(TAG, "Text does not match NA. Sending notification.")
                     sendSlotsAvailableNotification(text)
-                } else {
-                    Log.d(
+                    if (text.matchesPriority()) {
+                        Log.d(
                             TAG,
-                            "Matched NA pattern. Match found in text: '$text'. No notification sent."
-                    )
+                            "Lots of slots regex matched! Sending high priority notification."
+                        )
+                        sendLotsOfSlotsNotification(text)
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing notification", e)

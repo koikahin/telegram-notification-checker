@@ -18,7 +18,9 @@ val DISALLOWED_PATTERNS = arrayOf(
     """ping me""",
     """contact me""",
     """fake""",
-    """money"""
+    """money""",
+    """Sri.* new messages from .* chats""",
+    """\?""",
 )
 
 val PRIORITY_PATTERNS = arrayOf(
