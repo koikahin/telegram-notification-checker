@@ -170,10 +170,15 @@ class NotificationInterceptorService : NotificationListenerService() {
         val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+        val existingText =
+                getActiveNotificationText(notificationManager, NOTIFICATION_ID_LOTS_OF_SLOTS)
+        val combinedText = if (existingText.isNotEmpty()) "$message\n$existingText" else message
+
         val notification =
                 NotificationCompat.Builder(this, CHANNEL_ID_LOTS_OF_SLOTS)
                         .setContentTitle("!! Lots of slots available !!")
-                        .setContentText(message)
+                        .setContentText(message) // Show newest message in collapsed view
+                        .setStyle(NotificationCompat.BigTextStyle().bigText(combinedText))
                         .setSmallIcon(android.R.drawable.ic_dialog_alert)
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
                         .build()
@@ -186,14 +191,38 @@ class NotificationInterceptorService : NotificationListenerService() {
         val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+        val existingText =
+                getActiveNotificationText(notificationManager, NOTIFICATION_ID_SLOTS_AVAILABLE)
+        val combinedText = if (existingText.isNotEmpty()) "$message\n$existingText" else message
+
         val notification =
                 NotificationCompat.Builder(this, CHANNEL_ID_SLOTS_AVAILABLE)
                         .setContentTitle("Slots may be available!")
-                        .setContentText(message)
+                        .setContentText(message) // Show newest message in collapsed view
+                        .setStyle(NotificationCompat.BigTextStyle().bigText(combinedText))
                         .setSmallIcon(android.R.drawable.ic_dialog_info)
                         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                         .build()
 
         notificationManager.notify(NOTIFICATION_ID_SLOTS_AVAILABLE, notification)
+    }
+
+    private fun getActiveNotificationText(
+            notificationManager: NotificationManager,
+            notificationId: Int
+    ): String {
+        return try {
+            val activeNotifications = notificationManager.activeNotifications
+            val existingNotification = activeNotifications.find { it.id == notificationId }
+
+            val extras = existingNotification?.notification?.extras
+            val bigText = extras?.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)?.toString()
+            val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString()
+
+            if (!bigText.isNullOrEmpty()) bigText else (text ?: "")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error retrieving active notification text", e)
+            ""
+        }
     }
 }
