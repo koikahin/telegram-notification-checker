@@ -110,10 +110,10 @@ class NotificationInterceptorService : NotificationListenerService() {
 
                 if (text.matchesPriority()) {
                     Log.d(TAG, "Lots of slots regex matched! Sending high priority notification.")
-                    sendLotsOfSlotsNotification()
+                    sendLotsOfSlotsNotification(text)
                 } else if (!text.matchesDisallowed()) {
                     Log.d(TAG, "Text does not match NA. Sending notification.")
-                    sendSlotsAvailableNotification()
+                    sendSlotsAvailableNotification(text)
                 } else {
                     Log.d(
                             TAG,
@@ -165,7 +165,7 @@ class NotificationInterceptorService : NotificationListenerService() {
         notificationManager.createNotificationChannel(slotsAvailableChannel)
     }
 
-    private fun sendLotsOfSlotsNotification() {
+    private fun sendLotsOfSlotsNotification(message: String) {
         Log.d(TAG, "Sending 'lots of slots available' notification.")
         val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -173,6 +173,7 @@ class NotificationInterceptorService : NotificationListenerService() {
         val notification =
                 NotificationCompat.Builder(this, CHANNEL_ID_LOTS_OF_SLOTS)
                         .setContentTitle("!! Lots of slots available !!")
+                        .setContentText(message)
                         .setSmallIcon(android.R.drawable.ic_dialog_alert)
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
                         .build()
@@ -180,7 +181,7 @@ class NotificationInterceptorService : NotificationListenerService() {
         notificationManager.notify(NOTIFICATION_ID_LOTS_OF_SLOTS, notification)
     }
 
-    private fun sendSlotsAvailableNotification() {
+    private fun sendSlotsAvailableNotification(message: String) {
         Log.d(TAG, "Sending 'slots available' notification.")
         val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -188,6 +189,7 @@ class NotificationInterceptorService : NotificationListenerService() {
         val notification =
                 NotificationCompat.Builder(this, CHANNEL_ID_SLOTS_AVAILABLE)
                         .setContentTitle("Slots may be available!")
+                        .setContentText(message)
                         .setSmallIcon(android.R.drawable.ic_dialog_info)
                         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                         .build()
