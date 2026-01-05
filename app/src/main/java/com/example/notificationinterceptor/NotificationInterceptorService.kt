@@ -4,6 +4,8 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.media.AudioAttributes
+import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -26,7 +28,7 @@ private const val FOREGROUND_CHANNEL_ID = "foreground_service_channel"
 private const val FOREGROUND_CHANNEL_NAME = "monitoring slot messages..."
 private const val FOREGROUND_NOTIFICATION_ID = 1
 
-private const val CHANNEL_ID_LOTS_OF_SLOTS = "lots_of_slots_channel"
+private const val CHANNEL_ID_LOTS_OF_SLOTS = "lots_of_slots_alarm_channel"
 private const val CHANNEL_NAME_LOTS_OF_SLOTS = "Lots of Slots Notifications"
 private const val NOTIFICATION_ID_LOTS_OF_SLOTS = 2
 
@@ -154,6 +156,12 @@ class NotificationInterceptorService : NotificationListenerService() {
                         CHANNEL_NAME_LOTS_OF_SLOTS,
                         NotificationManager.IMPORTANCE_HIGH
                 )
+        val audioAttributes =
+                AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+        lotsOfSlotsChannel.setSound(Settings.System.DEFAULT_ALARM_ALERT_URI, audioAttributes)
         notificationManager.createNotificationChannel(lotsOfSlotsChannel)
 
         val slotsAvailableChannel =
@@ -181,7 +189,10 @@ class NotificationInterceptorService : NotificationListenerService() {
                         .setStyle(NotificationCompat.BigTextStyle().bigText(combinedText))
                         .setSmallIcon(android.R.drawable.ic_dialog_alert)
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setCategory(NotificationCompat.CATEGORY_ALARM)
                         .build()
+
+        notification.flags = notification.flags or Notification.FLAG_INSISTENT
 
         notificationManager.notify(NOTIFICATION_ID_LOTS_OF_SLOTS, notification)
     }
