@@ -1,4 +1,4 @@
-package com.example.notificationinterceptor
+package com.example.slotnotificationmonitor
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

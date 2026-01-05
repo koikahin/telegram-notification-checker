@@ -1,4 +1,4 @@
-package com.example.notificationinterceptor
+package com.example.slotnotificationmonitor
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -20,7 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-private const val TAG = "NotificationInterceptor"
+private const val TAG = "SlotNotificationMonitor"
 private const val ENABLE_FOREGROUND_SERVICE =
         false // Set to true to enable persistent foreground notification
 
@@ -38,7 +38,7 @@ private const val NOTIFICATION_ID_SLOTS_AVAILABLE = 3
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-class NotificationInterceptorService : NotificationListenerService() {
+class SlotNotificationMonitorService : NotificationListenerService() {
     private val serviceScope = CoroutineScope(Dispatchers.IO)
     private var settingsCollectorJob: Job? = null
 
@@ -48,7 +48,7 @@ class NotificationInterceptorService : NotificationListenerService() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "NotificationInterceptorService onCreate")
+        Log.d(TAG, "SlotNotificationMonitorService onCreate")
         createNotificationChannels()
         if (ENABLE_FOREGROUND_SERVICE) {
             startForeground(FOREGROUND_NOTIFICATION_ID, createForegroundNotification())
@@ -59,7 +59,7 @@ class NotificationInterceptorService : NotificationListenerService() {
     override fun onDestroy() {
         super.onDestroy()
         settingsCollectorJob?.cancel()
-        Log.d(TAG, "NotificationInterceptorService onDestroy")
+        Log.d(TAG, "SlotNotificationMonitorService onDestroy")
     }
 
     private fun startSettingsCollector() {

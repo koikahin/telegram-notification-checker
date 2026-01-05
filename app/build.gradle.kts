@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.notificationinterceptor"
+    namespace = "com.example.slotnotificationmonitor"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.notificationinterceptor"
+        applicationId = "com.example.slotnotificationmonitor"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

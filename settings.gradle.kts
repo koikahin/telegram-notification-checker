@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Notification Interceptor"
+rootProject.name = "Slot Notification Monitor"
 include(":app")

@@ -1,4 +1,4 @@
-package com.example.notificationinterceptor.ui.theme
+package com.example.slotnotificationmonitor.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

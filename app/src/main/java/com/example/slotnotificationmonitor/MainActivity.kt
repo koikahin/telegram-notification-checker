@@ -1,4 +1,4 @@
-package com.example.notificationinterceptor
+package com.example.slotnotificationmonitor
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -7,21 +7,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.example.notificationinterceptor.ui.MainScreen
-import com.example.notificationinterceptor.ui.theme.NotificationInterceptorTheme
+import com.example.slotnotificationmonitor.ui.MainScreen
+import com.example.slotnotificationmonitor.ui.theme.SlotNotificationMonitorTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            NotificationInterceptorTheme {
+            SlotNotificationMonitorTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    MainScreen()
-                }
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                ) { MainScreen() }
             }
         }
     }

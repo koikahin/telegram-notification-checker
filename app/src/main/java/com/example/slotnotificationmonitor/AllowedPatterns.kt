@@ -1,4 +1,4 @@
-package com.example.notificationinterceptor
+package com.example.slotnotificationmonitor
 
 
 val DISALLOWED_PATTERNS = arrayOf(
