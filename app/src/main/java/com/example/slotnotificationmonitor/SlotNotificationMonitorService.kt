@@ -113,13 +113,14 @@ class SlotNotificationMonitorService : NotificationListenerService() {
                     Log.d(TAG, "Matched NA pattern. No notification sent.")
                 } else {
                     Log.d(TAG, "Text does not match NA. Sending notification.")
-                    sendSlotsAvailableNotification(text)
                     if (text.matchesPriority()) {
                         Log.d(
                             TAG,
                             "Lots of slots regex matched! Sending high priority notification."
                         )
                         sendLotsOfSlotsNotification(text)
+                    } else {
+                        sendSlotsAvailableNotification(text)
                     }
                 }
             } catch (e: Exception) {
