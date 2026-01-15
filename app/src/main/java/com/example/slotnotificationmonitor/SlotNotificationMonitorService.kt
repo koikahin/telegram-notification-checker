@@ -115,8 +115,8 @@ class SlotNotificationMonitorService : NotificationListenerService() {
                     Log.d(TAG, "Text does not match NA. Sending notification.")
                     if (text.matchesPriority()) {
                         Log.d(
-                            TAG,
-                            "Lots of slots regex matched! Sending high priority notification."
+                                TAG,
+                                "Lots of slots regex matched! Sending high priority notification."
                         )
                         sendLotsOfSlotsNotification(text)
                     } else {
@@ -207,16 +207,32 @@ class SlotNotificationMonitorService : NotificationListenerService() {
                 getActiveNotificationText(notificationManager, NOTIFICATION_ID_SLOTS_AVAILABLE)
         val combinedText = if (existingText.isNotEmpty()) "$message\n$existingText" else message
 
-        val notification =
+        val isPriorityActive = isPriorityNotificationActive(notificationManager)
+        Log.d(TAG, "Priority notification active: $isPriorityActive")
+
+        val builder =
                 NotificationCompat.Builder(this, CHANNEL_ID_SLOTS_AVAILABLE)
                         .setContentTitle("Slots may be available!")
                         .setContentText(message) // Show newest message in collapsed view
                         .setStyle(NotificationCompat.BigTextStyle().bigText(combinedText))
                         .setSmallIcon(android.R.drawable.ic_dialog_info)
                         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                        .build()
 
-        notificationManager.notify(NOTIFICATION_ID_SLOTS_AVAILABLE, notification)
+        if (isPriorityActive) {
+            builder.setSilent(true)
+        }
+
+        notificationManager.notify(NOTIFICATION_ID_SLOTS_AVAILABLE, builder.build())
+    }
+
+    private fun isPriorityNotificationActive(notificationManager: NotificationManager): Boolean {
+        return try {
+            val activeNotifications = notificationManager.activeNotifications
+            activeNotifications.any { it.id == NOTIFICATION_ID_LOTS_OF_SLOTS }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking active notifications", e)
+            false
+        }
     }
 
     private fun getActiveNotificationText(
